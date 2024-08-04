@@ -1,0 +1,68 @@
+#include <stdio.h>
+#include <string.h>
+
+// Define instruction types
+typedef enum {LOAD, STORE, ADD, SUB, BEQ, NOP} InstructionType;
+
+// Define instruction structure
+typedef struct {
+    InstructionType type;
+    int rs;
+    int rt;
+    int rd;
+    int address;
+} Instruction;
+
+// Function prototypes
+void identifyHazards(Instruction pipeline[], int size);
+
+int main() {
+    // Example instruction pipeline
+    Instruction pipeline[] = {
+        {LOAD,  1, 0, 2, 100},  // Load  R2 <- M[100]
+        {ADD,   2, 3, 4, 0},    // Add   R4 <- R2 + R3
+        {SUB,   4, 5, 6, 0},    // Sub   R6 <- R4 - R5
+        {STORE, 6, 0, 0, 200},  // Store M[200] <- R6
+        {BEQ,   6, 7, 0, 300},  // Branch if R6 == R7 to address 300
+    };
+
+    int size = sizeof(pipeline) / sizeof(pipeline[0]);
+
+    // Identify hazards in the pipeline
+    identifyHazards(pipeline, size);
+
+    return 0;
+}
+
+void identifyHazards(Instruction pipeline[], int size) {
+    for (int i = 0; i < size - 1; i++) {
+        // Check for data hazards
+        if (pipeline[i].type == LOAD || pipeline[i].type == ADD || pipeline[i].type == SUB) {
+            for (int j = i + 1; j < size; j++) {
+                if (pipeline[j].type == ADD || pipeline[j].type == SUB || pipeline[j].type == STORE) {
+                    if (pipeline[i].rd == pipeline[j].rs || pipeline[i].rd == pipeline[j].rt) {
+                        printf("Data Hazard detected between instructions %d and %d\n", i, j);
+                    }
+                }
+            }
+        }
+
+        // Check for control hazards
+        if (pipeline[i].type == BEQ) {
+            for (int j = i + 1; j < size; j++) {
+                printf("Control Hazard detected due to branch instruction at %d affecting instruction %d\n", i, j);
+            }
+            break; // Once branch is taken, further instructions are not fetched
+        }
+
+        // Check for structural hazards (simplified example, assuming one memory unit)
+        if (pipeline[i].type == LOAD || pipeline[i].type == STORE) {
+            for (int j = i + 1; j < size; j++) {
+                if (pipeline[j].type == LOAD || pipeline[j].type == STORE) {
+                    printf("Structural Hazard detected between instructions %d and %d\n", i, j);
+                }
+            }
+        }
+    }
+}
+ 
